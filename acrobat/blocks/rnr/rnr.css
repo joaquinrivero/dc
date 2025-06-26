@@ -137,7 +137,7 @@
 .rnr-summary-container {
   display: flex;
   gap: 3px;
-  font-size: 1.00rem;
+  font-size: 1rem;
   font-weight: 200;
 }
 
@@ -147,7 +147,7 @@
 }
 
 .rnr-thank-you {
-  font-size: 1.50rem;
+  font-size: 1.5rem;
 }
 
 .tooltip {

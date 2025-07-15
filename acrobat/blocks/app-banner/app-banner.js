@@ -1,3 +1,4 @@
+/* app-banner.js */
 import { setLibs } from '../../scripts/utils.js';
 
 const miloLibs = setLibs('/libs');

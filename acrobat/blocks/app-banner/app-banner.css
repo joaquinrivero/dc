@@ -1,3 +1,4 @@
+/* app-banner.css */
 .placeholder-banner {
   position: relative;
   top: 0;
@@ -13,8 +14,8 @@
   display: inline;
   width: 24px;
   text-align: center;
-  color: grey;
-  font-size: 20px;
+  color: #737373;
+  font-size: 1.25rem;
   box-sizing: content-box;
 }
 
@@ -37,7 +38,7 @@
   min-height: 2px;
   font-weight: bold;
   color: #333;
-  font-size: 12px;
+  font-size: 0.75rem;
   height: 11px;
   box-sizing: content-box;
   margin: 0;
@@ -47,18 +48,18 @@
   min-height: 2px;
   overflow: hidden;
   color: #333;
-  font-size: 11px;
+  font-size: 0.69rem;
   height: 18px;
   box-sizing: content-box;
   margin: 0;
 }
 
 .app-banner-button {
-  font-size: 12px;
+  font-size: 0.75rem;
   border: 1px solid;
   border-radius: 10px;
   text-decoration: none;
-  color: #1CADCE;
+  color: #147990;
   font-weight: bold;
   text-align: center;
   letter-spacing: 1.15px;
@@ -71,11 +72,23 @@
   background: transparent;
 }
 
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .app-banner-stars {
   display: inline-block;
-  color: #ffb400;
+  color: #996c00;
   letter-spacing: -2px;
-  font-size: 16px;
+  font-size: 1rem;
   margin-left: -2px;
   box-sizing: content-box;
 }
@@ -83,8 +96,8 @@
 .app-banner-reviews {
   min-height: 10px;
   min-width: 10px;
-  font-size: 12px;
-  color: #777;
+  font-size: 0.75rem;
+  color: #6b6b6b;
   display: inline-block;
   margin-left: 4px;
   top: -1px;
@@ -136,7 +149,7 @@
   position: sticky;
   top: 0;
   left: 0;
-  box-shadow: 0 0 5px #00000059;
+  box-shadow: 0 0 5px #00059;
   display: none;
   box-sizing: content-box;
   z-index: 11;

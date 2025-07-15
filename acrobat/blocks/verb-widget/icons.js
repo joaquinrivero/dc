@@ -1,3 +1,4 @@
+/* icons.js */
 // icons.js
 
 // Object mapping icon names to SVG strings
@@ -24,4 +25,530 @@ export default function createSvgElement(iconName) {
   const svgElement = svgDoc.documentElement;
 
   return svgElement;
+}
+
+
+/* limits.js */
+const LIMITS = {
+  fillsign: {
+    maxFileSize: 100000000, // 100 MB
+    maxFileSizeFriendly: '100 MB', // 100 MB
+    acceptedFiles: '.pdf',
+    maxNumFiles: 1,
+    mobileApp: true,
+  },
+  'delete-pages': {
+    maxFileSize: 100000000, // 1 MB
+    acceptedFiles: '.pdf',
+    maxNumFiles: 1,
+  },
+  'number-pages': {
+    maxFileSize: 100000000, // 1 MB
+    acceptedFiles: '.pdf',
+    maxNumFiles: 1,
+  },
+  'compress-pdf': {
+    maxFileSize: 100000000,
+    acceptedFiles: '.pdf',
+    maxNumFiles: 1,
+  },
+};
+
+export default LIMITS;
+
+
+/* pdfAssetManager.js */
+const ENVS = {
+  prod: 'https://pdfnow.adobe.io',
+  stage: 'https://pdfnow-stage.adobe.io',
+  dev: 'https://pdfnow-dev.adobe.io',
+};
+
+const getEnv = () => {
+  // eslint-disable-next-line compat/compat
+  const { host, searchParams } = new URL(window.location.href);
+  const query = searchParams.get('env');
+
+  if (query) return ENVS[query];
+  if (host.includes('stage.adobe') || host.includes('corp.adobe') || host.includes('stage')) return ENVS.stage;
+  if (host.includes('hlx.page') || host.includes('localhost') || host.includes('hlx.live')) return ENVS.dev;
+  return ENVS.prod;
+};
+
+const baseApiUrl = getEnv();
+
+export const validateSSRF = (url) => {
+  try {
+    // eslint-disable-next-line compat/compat
+    const parsedUrl = new URL(url);
+    const allowedHosts = ['pdfnow.adobe.io', 'pdfnow-stage.adobe.io', 'pdfnow-dev.adobe.io', 'acrobat.adobe.com'];
+    if (!allowedHosts.includes(parsedUrl.host)) {
+      throw new Error('Invalid host');
+    }
+    return parsedUrl.href;
+  } catch (error) {
+    throw new Error(`Invalid URL: ${url}`);
+  }
+};
+
+const fetchWithAuth = async (url, accessToken, options = {}) => {
+  const SSRFurl = validateSSRF(url);
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    ...options.headers,
+  };
+
+  try {
+    // eslint-disable-next-line compat/compat
+    const response = await fetch(SSRFurl, { ...options, headers });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    return response.json();
+  } catch (error) {
+    throw new Error(`Error fetching ${SSRFurl}: ${error}`);
+  }
+};
+
+const getAnonymousToken = async () => {
+  const url = validateSSRF(`${baseApiUrl}/users/anonymous_token`);
+  const headers = { Accept: `application/vnd.adobe.dc+json;profile="${baseApiUrl}/schemas/anonymous_token_v1.json"` };
+
+  try {
+    // eslint-disable-next-line compat/compat
+    const response = await fetch(url, { headers, method: 'POST' });
+    if (!response.ok) throw new Error(`Failed to fetch anonymous token: ${response.statusText}`);
+    return response.json();
+  } catch (error) {
+    throw new Error(`Error fetching ${url}: ${error}`);
+  }
+};
+
+export const initializePdfAssetManager = async () => {
+  const { access_token: accessToken, discovery } = await getAnonymousToken();
+  return { accessToken, discoveryResources: discovery.resources };
+};
+
+export const uploadAsset = async (uploadUrl, formData, accessToken) => {
+  try {
+    return await fetchWithAuth(uploadUrl, accessToken, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (error) {
+    throw new Error(`Error uploading asset: ${error}`);
+  }
+};
+
+export const prepareFormData = (file, filename) => {
+  const formData = new FormData();
+  formData.append('parameters', new Blob([JSON.stringify({
+    options: {
+      ignore_content_type: true,
+      name: filename,
+    },
+  })], { type: `application/vnd.adobe.dc+json;profile="${baseApiUrl}/schemas/asset_upload_parameters_v1.json"` }));
+  formData.append('file', file, filename);
+  return formData;
+};
+
+export const createPdf = async (createPdfUrl, payload, accessToken) => {
+  try {
+    return await fetchWithAuth(createPdfUrl, accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': `application/vnd.adobe.dc+json;profile="${baseApiUrl}/schemas/createpdf_parameters_v1.json"` },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    throw new Error(`Error creating PDF: ${error}`);
+  }
+};
+
+export const checkJobStatus = async (jobUri, accessToken, discoveryResources) => {
+  const jobStatusUrlTemplate = discoveryResources.jobs.status.uri;
+  const url = jobStatusUrlTemplate.replace('{?job_uri}', `?job_uri=${encodeURIComponent(jobUri)}`);
+
+  try {
+    const statusResult = await fetchWithAuth(url, accessToken);
+    if (statusResult.status === 'done' || statusResult.status === 'failed') return statusResult;
+    setTimeout(() => checkJobStatus(
+      jobUri,
+      accessToken,
+      discoveryResources,
+    ), statusResult.retry_interval || 2000);
+  } catch (error) {
+    throw new Error(`Error checking job status: ${error}`);
+  }
+  return null;
+};
+
+const encodeBlobUrl = (blobUrl = {}) => {
+  const encodedBlobUrl = btoa(JSON.stringify(blobUrl));
+  return encodedBlobUrl.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+export const getAcrobatWebLink = (filename, assetUri, downloadUri) => {
+  const blobUrlStructure = { source: 'signed-uri', itemName: filename, itemType: 'application/pdf' };
+  const encodedBlobUrl = encodeBlobUrl(blobUrlStructure);
+  const acrobatDomain = 'https://acrobat.adobe.com';
+  return `${acrobatDomain}/blob/${encodedBlobUrl}?defaultRHPFeature=verb-quanda&x_api_client_location=chat_pdf&pdfNowAssetUri=${assetUri}#${downloadUri}`;
+};
+
+export const getDownloadUri = async (
+  assetUri,
+  accessToken,
+  discoveryResources,
+  makeTicket = false,
+  makeDirectStorageUri = false,
+) => {
+  const downloadUriTemplate = discoveryResources.assets.download_uri.uri;
+  let url = `${downloadUriTemplate.replace('{?asset_uri,make_direct_storage_uri,action}', '')}?asset_uri=${encodeURIComponent(assetUri)}`;
+
+  if (makeTicket) url += '&make_ticket=true';
+  if (makeDirectStorageUri) url += '&make_direct_storage_uri=true';
+
+  try {
+    const response = await fetchWithAuth(url, accessToken);
+    return response.uri;
+  } catch (error) {
+    throw new Error(`Error fetching download URI: ${error}`);
+  }
+};
+
+
+/* verb-widget.js */
+import LIMITS from './limits.js';
+import { setLibs, getEnv, isOldBrowser } from '../../scripts/utils.js';
+import verbAnalytics from '../../scripts/alloy/verb-widget.js';
+import createSvgElement from './icons.js';
+
+const miloLibs = setLibs('/libs');
+const { createTag, getConfig } = await import(`${miloLibs}/utils/utils.js`);
+
+const fallBack = 'https://www.adobe.com/go/acrobat-overview';
+const EOLBrowserPage = 'https://acrobat.adobe.com/home/index-browser-eol.html';
+
+const verbRedirMap = {
+  createpdf: 'createpdf',
+  'crop-pages': 'crop',
+  'delete-pages': 'deletepages',
+  'extract-pages': 'extract',
+  'combine-pdf': 'combine',
+  'protect-pdf': 'protect',
+  'add-comment': 'addcomment',
+  'pdf-to-image': 'pdftoimage',
+  'reorder-pages': 'reorderpages',
+  sendforsignature: 'sendforsignature',
+  'rotate-pages': 'rotatepages',
+  fillsign: 'fillsign',
+  'split-pdf': 'split',
+  'insert-pdf': 'insert',
+  'compress-pdf': 'compress',
+  'png-to-pdf': 'jpgtopdf',
+  'number-pages': 'number',
+  'ocr-pdf': 'ocr',
+  'chat-pdf': 'chat',
+  'chat-pdf-student': 'study',
+};
+
+const setUser = () => {
+  localStorage.setItem('unity.user', 'true');
+};
+
+const setDraggingClass = (widget, shouldToggle) => {
+  // eslint-disable-next-line chai-friendly/no-unused-expressions
+  shouldToggle ? widget.classList.add('dragging') : widget.classList.remove('dragging');
+};
+
+function prefetchNextPage(verb) {
+  const ENV = getEnv();
+  const isProd = ENV === 'prod';
+  const nextPageHost = isProd ? 'acrobat.adobe.com' : 'stage.acrobat.adobe.com';
+  const nextPageUrl = `https://${nextPageHost}/us/en/discover/${verb}`;
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = nextPageUrl;
+  link.crossOrigin = 'anonymous';
+  link.as = 'document';
+  document.head.appendChild(link);
+}
+
+function initiatePrefetch(verb) {
+  if (!window.prefetchInitiated) {
+    prefetchNextPage(verb);
+    window.prefetchInitiated = true;
+  }
+}
+
+function redDir(verb) {
+  const hostname = window?.location?.hostname;
+  const ENV = getEnv();
+  const VERB = verb;
+  let newLocation;
+  if (hostname !== 'www.adobe.com' && hostname !== 'sign.ing' && hostname !== 'edit.ing') {
+    newLocation = `https://www.adobe.com/go/acrobat-${verbRedirMap[VERB] || VERB.split('-').join('')}-${ENV}`;
+  } else {
+    newLocation = `https://www.adobe.com/go/acrobat-${verbRedirMap[VERB] || VERB.split('-').join('')}` || fallBack;
+  }
+  window.location.href = newLocation;
+}
+
+let exitFlag;
+function handleExit(event) {
+  if (exitFlag) { return; }
+  event.preventDefault();
+  event.returnValue = true;
+}
+
+export default async function init(element) {
+  if (isOldBrowser()) {
+    window.location.href = EOLBrowserPage;
+    return;
+  }
+
+  const { locale } = getConfig();
+  const ppURL = window.mph['verb-widget-privacy-policy-url'] || `https://www.adobe.com${locale.prefix}/privacy/policy.html`;
+  const touURL = window.mph['verb-widget-terms-of-use-url'] || `https://www.adobe.com${locale.prefix}/legal/terms.html`;
+
+  const children = element.querySelectorAll(':scope > div');
+  const VERB = element.classList[1];
+  const widgetHeading = createTag('h1', { class: 'verb-heading' }, children[0].textContent);
+  let mobileLink = null;
+  if (/iPad|iPhone|iPod/.test(window.browser?.ua) && !window.MSStream) {
+    mobileLink = window.mph[`verb-widget-${VERB}-apple`];
+  } else if (/android/i.test(window.browser?.ua)) {
+    mobileLink = window.mph[`verb-widget-${VERB}-google`];
+  }
+
+  children.forEach((child) => {
+    child.remove();
+  });
+
+  const widget = createTag('div', { id: 'drop-zone', class: 'verb-wrapper' });
+  const widgetContainer = createTag('div', { class: 'verb-container' });
+  const widgetRow = createTag('div', { class: 'verb-row' });
+  const widgetLeft = createTag('div', { class: 'verb-col' });
+  const widgetRight = createTag('div', { class: 'verb-col right' });
+  const widgetHeader = createTag('div', { class: 'verb-header' });
+  const widgetIcon = createTag('div', { class: 'verb-icon' });
+  const widgetIconSvg = createSvgElement('WIDGET_ICON');
+  if (widgetIconSvg) {
+    widgetIconSvg.classList.add('icon-verb');
+    widgetIcon.appendChild(widgetIconSvg);
+  }
+  const widgetTitle = createTag('div', { class: 'verb-title' }, 'Adobe Acrobat');
+  const widgetCopy = createTag('p', { class: 'verb-copy' }, window.mph[`verb-widget-${VERB}-description`]);
+  const widgetMobCopy = createTag('p', { class: 'verb-copy' }, window.mph[`verb-widget-${VERB}-mobile-description`]);
+  const widgetButton = createTag('button', { for: 'file-upload', class: 'verb-cta', tabindex: 0 });
+  const widgetButtonLabel = createTag('span', { class: 'verb-cta-label' }, window.mph['verb-widget-cta']);
+  widgetButton.append(widgetButtonLabel);
+  const uploadIconSvg = createSvgElement('UPLOAD_ICON');
+  if (uploadIconSvg) {
+    uploadIconSvg.classList.add('upload-icon');
+    widgetButton.prepend(uploadIconSvg);
+  }
+
+  const widgetMobileButton = createTag('a', { class: 'verb-mobile-cta', href: mobileLink }, window.mph['verb-widget-cta-mobile']);
+  const button = createTag('input', { type: 'file', accept: LIMITS[VERB].acceptedFiles, id: 'file-upload', class: 'hide', 'aria-hidden': true });
+  const widgetImage = createTag('div', { class: 'verb-image' });
+  const verbIconName = `${VERB}`;
+  const verbImageSvg = createSvgElement(verbIconName);
+  if (verbImageSvg) {
+    verbImageSvg.classList.add('icon-verb-image');
+    widgetImage.appendChild(verbImageSvg);
+  }
+
+  // Since we're using placeholders we need a solution for the hyperlinks
+  const legalWrapper = createTag('div', { class: 'verb-legal-wrapper' });
+  const legal = createTag('p', { class: 'verb-legal' }, `${window.mph['verb-widget-legal']} `);
+  const legalTwo = createTag('p', { class: 'verb-legal verb-legal-two' }, `${window.mph['verb-widget-legal-2']} `);
+  const iconSecurity = createTag('div', { class: 'security-icon' });
+  const infoIcon = createTag('div', { class: 'info-icon milo-tooltip right', 'data-tooltip': `${window.mph['verb-widget-tool-tip']}` });
+  const securityIconSvg = createSvgElement('SECURITY_ICON');
+  const infoIconSvg = createSvgElement('INFO_ICON');
+  if (securityIconSvg) {
+    iconSecurity.appendChild(securityIconSvg);
+    infoIcon.appendChild(infoIconSvg);
+  }
+  const footer = createTag('div', { class: 'verb-footer' });
+
+  const errorState = createTag('div', { class: 'error hide' });
+  const errorStateText = createTag('p', { class: 'verb-errorText' });
+  const errorIcon = createTag('div', { class: 'verb-errorIcon' });
+  const errorCloseBtn = createTag('div', { class: 'verb-errorBtn' });
+  const closeIconSvg = createSvgElement('CLOSE_ICON');
+  if (closeIconSvg) {
+    closeIconSvg.classList.add('close-icon', 'error');
+    errorCloseBtn.prepend(closeIconSvg);
+  }
+
+  widget.append(widgetContainer);
+  widgetContainer.append(widgetRow);
+  widgetRight.append(widgetImage);
+  widgetRow.append(widgetLeft, widgetRight);
+  widgetHeader.append(widgetIcon, widgetTitle);
+  errorState.append(errorIcon, errorStateText, errorCloseBtn);
+  if (mobileLink && LIMITS[VERB].mobileApp) {
+    widgetLeft.append(widgetHeader, widgetHeading, widgetMobCopy, errorState, widgetMobileButton);
+    element.append(widget);
+  } else {
+    widgetLeft.append(widgetHeader, widgetHeading, widgetCopy, errorState, widgetButton, button);
+    legalTwo.innerHTML = legalTwo.outerHTML.replace(window.mph['verb-widget-terms-of-use'], `<a class="verb-legal-url" target="_blank" href="${touURL}"> ${window.mph['verb-widget-terms-of-use']}</a>`);
+    legalTwo.innerHTML = legalTwo.outerHTML.replace(window.mph['verb-widget-privacy-policy'], `<a class="verb-legal-url" target="_blank" href="${ppURL}"> ${window.mph['verb-widget-privacy-policy']}</a>`);
+
+    legalWrapper.append(legal, legalTwo);
+    footer.append(iconSecurity, legalWrapper, infoIcon);
+
+    element.append(widget, footer);
+  }
+
+  // Redirect after IMS:Ready
+  window.addEventListener('IMS:Ready', () => {
+    if (window.adobeIMS.isSignedInUser()
+      && window.adobeIMS.getAccountType() !== 'type1') {
+      redDir(VERB);
+    }
+  });
+  // Race Condition
+  if (window.adobeIMS?.isSignedInUser()
+    && window.adobeIMS?.getAccountType() !== 'type1') {
+    redDir(VERB);
+  }
+
+  // Analytics
+  verbAnalytics('landing:shown', VERB);
+
+  window.prefetchInitiated = false;
+
+  widgetMobileButton.addEventListener('click', () => {
+    verbAnalytics('goto-app:clicked', VERB);
+  });
+
+  widget.addEventListener('click', (e) => {
+    if (e.srcElement.classList.value.includes('error')) { return; }
+    if (!mobileLink) { button.click(); }
+  });
+
+  button.addEventListener('click', () => {
+    verbAnalytics('filepicker:shown', VERB);
+    verbAnalytics('dropzone:choose-file-clicked', VERB);
+    initiatePrefetch(VERB);
+  });
+
+  button.addEventListener('cancel', () => {
+    verbAnalytics('choose-file:close', VERB);
+  });
+
+  widget.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    setDraggingClass(widget, true);
+    initiatePrefetch(VERB);
+  });
+
+  widget.addEventListener('dragleave', () => {
+    setDraggingClass(widget, false);
+  });
+
+  errorCloseBtn.addEventListener('click', () => {
+    errorState.classList.remove('verb-error');
+    errorState.classList.add('hide');
+  });
+
+  element.addEventListener('unity:track-analytics', (e) => {
+    const date = new Date();
+    date.setTime(date.getTime() + 1 * 60 * 1000);
+    const cookieExp = `expires=${date.toUTCString()}`;
+
+    if (e.detail?.event === 'change') {
+      verbAnalytics('choose-file:open', VERB, e.detail?.data);
+      setUser();
+    }
+    // maybe new event name files-dropped?
+    if (e.detail?.event === 'drop') {
+      initiatePrefetch(VERB);
+      verbAnalytics('files-dropped', VERB, e.detail?.data);
+      setDraggingClass(widget, false);
+      setUser();
+    }
+
+    if (e.detail?.event === 'uploading') {
+      verbAnalytics('job:uploading', VERB, e.detail?.data);
+      setUser();
+      document.cookie = `UTS_Uploading=${Date.now()};domain=.adobe.com;path=/;expires=${cookieExp}`;
+      window.addEventListener('beforeunload', (w) => {
+        handleExit(w);
+      });
+    }
+
+    if (e.detail?.event === 'uploaded') {
+      exitFlag = true;
+      setUser();
+      document.cookie = `UTS_Uploaded=${Date.now()};domain=.adobe.com;path=/;expires=${cookieExp}`;
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    const date = new Date();
+    date.setTime(date.getTime() + 1 * 60 * 1000);
+    const cookieExp = `expires=${date.toUTCString()}`;
+    if (exitFlag) {
+      document.cookie = `UTS_Redirect=${Date.now()};domain=.adobe.com;path=/;expires=${cookieExp}`;
+    }
+  });
+
+  // Errors, Analytics & Logging
+  const lanaOptions = {
+    sampleRate: 1,
+    tags: 'DC_Milo,Project Unity (DC)',
+  };
+
+  const handleError = (str) => {
+    setDraggingClass(widget, false);
+    errorState.classList.add('verb-error');
+    errorState.classList.remove('hide');
+    errorStateText.textContent = str;
+    setTimeout(() => {
+      errorState.classList.remove('verb-error');
+      errorState.classList.add('hide');
+    }, 5000);
+  };
+
+  element.addEventListener('unity:show-error-toast', (e) => {
+    // eslint-disable-next-line no-console
+    if (e.detail?.code.includes('error_only_accept_one_file')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error', VERB);
+    }
+
+    if (e.detail?.code.includes('error_unsupported_type')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error:unsupported_type', VERB);
+    }
+
+    if (e.detail?.code.includes('error_empty_file')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error:empty_file', VERB);
+    }
+
+    if (e.detail?.code.includes('error_file_too_large')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error', VERB);
+    }
+
+    if (e.detail?.code.includes('error_max_page_count')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error:max_page_count', VERB);
+    }
+
+    if (e.detail?.code.includes('error_generic')
+      || e.detail?.code.includes('error_max_quota_exceeded')
+      || e.detail?.code.includes('error_no_storage_provision')
+      || e.detail?.code.includes('error_duplicate_asset')) {
+      handleError(e.detail?.message);
+      verbAnalytics('error', VERB);
+      window.lana?.log(`Error Status: ${e.detail?.message}, Error Message: ${e.detail?.status}`, lanaOptions);
+    }
+
+    // acrobat:verb-fillsign:error:page_count_missing_from_metadata_api
+    // acrobat:verb-fillsign:error:403
+    // LANA for 403
+  });
 }

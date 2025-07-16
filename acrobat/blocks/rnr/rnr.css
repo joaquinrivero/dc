@@ -1,5 +1,6 @@
+/* rnr.css */
 :root {
-  --rnr-tooltip-background-color: #747474;
+  --rnr-tooltip-background-color: #fff;
   --rnr-tooltip-text-color: #fff;
   --rnr-tooltip-transition-time: 0.3s;
   --rnr-tooltip-z-index: 50;
@@ -20,7 +21,7 @@
 }
 
 .rnr-title {
-  font-size: 20px;
+  font-size: 1.25rem;
   margin: 0;
 }
 
@@ -68,7 +69,7 @@
   height: var(--rnr-fieldset-height);
   box-sizing: content-box;
   flex-direction: column;
-  background-color: var(--color-white);
+  background-color: #000;
   cursor: text;
 }
 
@@ -84,18 +85,18 @@
   padding: 0;
   margin: 0;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.88rem;
   cursor: default;
-  color: var(--color-gray-400);
+  color: #2c2c2c;
 }
 
 .rnr-comments-submit:not(:disabled) {
   cursor: pointer;
-  color: var(--color-gray-700);
+  color: #2c2c2c;
 }
 
 .rnr-comments-submit:not(:disabled):hover {
-  color: var(--color-black);
+  color: #2c2c2c;
 }
 
 .rnr-comments-footer {
@@ -111,9 +112,9 @@
   border: none;
   outline: none;
   padding: 6px 8px 0;
-  font-size: 14px;
+  font-size: 0.88rem;
   font-style: italic;
-  background-color: var(--color-white);
+  background-color: #000;
   box-sizing: border-box;
   resize: none;
   overflow: auto;
@@ -125,15 +126,15 @@
 }
 
 .rnr-comments-character-counter {
-  color: var(--color-gray-400);
-  font-size: 14px;
+  color: #2c2c2c;
+  font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
 }
 
 .rnr-summary-container {
   display: flex;
   gap: 3px;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 200;
 }
 
@@ -143,7 +144,7 @@
 }
 
 .rnr-thank-you {
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 
 .tooltip {
@@ -161,8 +162,8 @@
   padding: 10px;
   border-radius: 4px;
   background: var(--rnr-tooltip-background-color);
-  color: var(--rnr-tooltip-text-color);
-  font-size: 12px;
+  color: #2c2c2c;
+  font-size: 0.75rem;
   opacity: 0;
   transition: var(--rnr-tooltip-transition-time);
   visibility: hidden;
@@ -174,7 +175,7 @@
   position: absolute;
   margin: 0 1px;
   border: 5px solid var(--rnr-tooltip-background-color);
-  border-color: transparent transparent var(--rnr-tooltip-background-color);
+  border-color: #2c2c2c;
   opacity: 0;
   transition: var(--rnr-tooltip-transition-time);
   visibility: hidden;

@@ -1,0 +1,26 @@
+/* Ensure prompt copy buttons have proper focus indicators for accessibility */
+.prompt-copy-btn {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.prompt-copy-btn:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.prompt-copy-btn:focus-visible {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/* Ensure button is properly sized for touch targets */
+.prompt-copy-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

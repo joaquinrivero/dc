@@ -1,0 +1,54 @@
+.info-icon.milo-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.info-icon.milo-tooltip:focus {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.info-icon.milo-tooltip:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.info-icon.milo-tooltip.right .tooltip-content {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #2c2c2c;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-left: 8px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.info-icon.milo-tooltip.right .tooltip-content::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #2c2c2c;
+}
+
+.info-icon.milo-tooltip.active .tooltip-content,
+.info-icon.milo-tooltip:hover .tooltip-content,
+.info-icon.milo-tooltip:focus .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}

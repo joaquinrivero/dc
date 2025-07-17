@@ -1,0 +1,75 @@
+.tooltip-content {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  max-width: 300px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.tooltip-content::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid #333;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.milo-tooltip[data-tooltip]:hover::after,
+.milo-tooltip[data-tooltip]:focus::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  background: #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  max-width: 300px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  word-wrap: break-word;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.milo-tooltip[data-tooltip]:hover::before,
+.milo-tooltip[data-tooltip]:focus::before {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid #333;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  z-index: 1001;
+}
+
+/* Ensure tooltip trigger is keyboard accessible */
+.milo-tooltip[data-tooltip] {
+  cursor: pointer;
+}
+
+.milo-tooltip[data-tooltip]:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}

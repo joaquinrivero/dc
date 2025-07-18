@@ -1,0 +1,85 @@
+/* Milo tooltip styles with WCAG 2.1 SC 1.4.13 compliance */
+.milo-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.milo-tooltip .tooltip-content {
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  pointer-events: none;
+  
+  /* Position tooltip above by default */
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 5px;
+}
+
+.milo-tooltip .tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+/* Show tooltip when data-tooltip-visible attribute is present */
+.milo-tooltip[data-tooltip-visible="true"] .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto; /* Allow hovering over tooltip content */
+}
+
+/* Right positioned tooltips */
+.milo-tooltip.right .tooltip-content {
+  bottom: auto;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  margin-bottom: 0;
+}
+
+.milo-tooltip.right .tooltip-content::after {
+  top: 50%;
+  left: 0;
+  margin-left: -10px;
+  margin-top: -5px;
+  border-color: transparent #333 transparent transparent;
+}
+
+/* Ensure tooltip is accessible and meets contrast requirements */
+.milo-tooltip .tooltip-content {
+  background: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #666;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus styles for tooltip trigger */
+.milo-tooltip:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/* Responsive tooltip width */
+@media (max-width: 768px) {
+  .milo-tooltip .tooltip-content {
+    white-space: normal;
+    max-width: 200px;
+    word-wrap: break-word;
+  }
+}

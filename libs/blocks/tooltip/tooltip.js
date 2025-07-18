@@ -1,64 +1,51 @@
-// Enhanced tooltip functionality for keyboard accessibility
+// Updated tooltip functionality to support keyboard navigation
+// Added keyboard event handlers for Enter and Space keys
+// Added proper ARIA attributes for accessibility
 
-// Make tooltip info icons keyboard accessible
-function makeTooltipKeyboardAccessible() {
-  const tooltipIcons = document.querySelectorAll('.info-icon.milo-tooltip');
+function initTooltip(element) {
+  // Make tooltip focusable
+  element.setAttribute('tabindex', '0');
+  element.setAttribute('role', 'button');
   
-  tooltipIcons.forEach(icon => {
-    // Add keyboard accessibility attributes
-    icon.setAttribute('tabindex', '0');
-    icon.setAttribute('role', 'button');
-    icon.setAttribute('aria-label', 'Show tooltip information');
-    
-    // Add keyboard event handlers
-    icon.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        // Show tooltip
-        icon.classList.add('tooltip-visible');
-        const tooltip = icon.querySelector('.tooltip-content');
-        if (tooltip) {
-          tooltip.style.display = 'block';
-          tooltip.setAttribute('aria-hidden', 'false');
-        }
-      }
-      if (e.key === 'Escape') {
-        // Hide tooltip
-        icon.classList.remove('tooltip-visible');
-        const tooltip = icon.querySelector('.tooltip-content');
-        if (tooltip) {
-          tooltip.style.display = 'none';
-          tooltip.setAttribute('aria-hidden', 'true');
-        }
-      }
-    });
-    
-    // Add focus/blur handlers for keyboard navigation
-    icon.addEventListener('focus', () => {
-      icon.classList.add('tooltip-visible');
-      const tooltip = icon.querySelector('.tooltip-content');
-      if (tooltip) {
-        tooltip.style.display = 'block';
-        tooltip.setAttribute('aria-hidden', 'false');
-      }
-    });
-    
-    icon.addEventListener('blur', () => {
-      icon.classList.remove('tooltip-visible');
-      const tooltip = icon.querySelector('.tooltip-content');
-      if (tooltip) {
-        tooltip.style.display = 'none';
-        tooltip.setAttribute('aria-hidden', 'true');
-      }
-    });
+  // Add aria-label from data-tooltip
+  const tooltipText = element.getAttribute('data-tooltip');
+  if (tooltipText) {
+    element.setAttribute('aria-label', tooltipText);
+  }
+  
+  // Add keyboard event listeners
+  element.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      showTooltip(element);
+    }
+    if (e.key === 'Escape') {
+      hideTooltip(element);
+    }
+  });
+  
+  // Add focus/blur handlers
+  element.addEventListener('focus', () => {
+    showTooltip(element);
+  });
+  
+  element.addEventListener('blur', () => {
+    hideTooltip(element);
   });
 }
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', makeTooltipKeyboardAccessible);
-} else {
-  makeTooltipKeyboardAccessible();
+function showTooltip(element) {
+  // Implementation to show tooltip
+  element.classList.add('tooltip-visible');
 }
 
-export default makeTooltipKeyboardAccessible;
+function hideTooltip(element) {
+  // Implementation to hide tooltip
+  element.classList.remove('tooltip-visible');
+}
+
+// Initialize tooltips on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const tooltips = document.querySelectorAll('.info-icon.milo-tooltip');
+  tooltips.forEach(initTooltip);
+});

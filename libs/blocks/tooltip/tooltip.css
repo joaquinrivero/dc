@@ -1,0 +1,70 @@
+/* Enhanced tooltip styles for keyboard accessibility */
+
+.info-icon.milo-tooltip {
+  /* Make focusable elements have visible focus indicator */
+  outline: none;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.info-icon.milo-tooltip:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.info-icon.milo-tooltip:hover,
+.info-icon.milo-tooltip:focus {
+  cursor: pointer;
+}
+
+/* Ensure tooltip content is properly positioned and accessible */
+.info-icon.milo-tooltip .tooltip-content {
+  display: none;
+  position: absolute;
+  z-index: 1000;
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 250px;
+  word-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.info-icon.milo-tooltip.right .tooltip-content {
+  left: 100%;
+  margin-left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.info-icon.milo-tooltip.tooltip-visible .tooltip-content {
+  display: block;
+}
+
+/* Arrow for tooltip */
+.info-icon.milo-tooltip .tooltip-content::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #333;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .info-icon.milo-tooltip:focus {
+    outline: 3px solid;
+    outline-offset: 2px;
+  }
+  
+  .info-icon.milo-tooltip .tooltip-content {
+    background: #000;
+    border: 1px solid #fff;
+  }
+}
